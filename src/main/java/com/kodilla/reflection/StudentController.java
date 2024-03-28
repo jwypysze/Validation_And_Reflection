@@ -1,20 +1,23 @@
 package com.kodilla.reflection;
 
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 public class StudentController {
 
     @RequestMapping(path = "/create", method = RequestMethod.POST)
-    public Map<Integer, String> createStudents(@RequestBody Numbers numbers) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchFieldException {
+    public Map<Integer, String> createStudents(@Valid @RequestBody Numbers numbers) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchFieldException {
 
         Student[] students = new Student[numbers.getN()];
 
@@ -35,5 +38,19 @@ public class StudentController {
             map.put(key, indexNumber);
         }
         return map;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    Map<String, String> handleMethodArgumentNotValidExceptions(MethodArgumentNotValidException exc) {
+        Map<String, String> resultMap = new HashMap<>();
+        List<ObjectError> errorList = exc.getBindingResult().getAllErrors();
+        errorList.forEach(errorObject -> {
+            FieldError fieldError = (FieldError) errorObject;
+            String name = fieldError.getField();
+            String message = errorObject.getDefaultMessage();
+            resultMap.put(name, message);
+        });
+        return resultMap;
     }
 }
